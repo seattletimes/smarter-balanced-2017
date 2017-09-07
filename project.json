@@ -1,0 +1,21 @@
+{
+  "s3": {
+    "stage": {
+      "bucket": "projects-staging.seattletimes.com",
+      "path": "test-results"
+    },
+    "live": {
+      "bucket": "projects.seattletimes.com",
+      "path": "2017/education/smarter-balanced"
+    }
+  },
+  "title": "",
+  "description": "",
+  "url": "",
+  "slug": "",
+  "tags": [],
+  "image": "assets/social.jpg",
+  "sheets": [],
+  "production": true,
+  "embedded": true
+}

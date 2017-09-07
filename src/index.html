@@ -1,0 +1,220 @@
+<%
+
+  var scoreFields = "MathPercentMetStandardIncludingPrevPass ELAPercentMetStandardIncludingPrevPass".split(" ");
+
+  var whitelist = ["School", "District", "County", "GradeLevel"];
+
+  var clean = function(r) {
+    var out = {};
+    whitelist.forEach(function(key) {
+      out[key] = r[key];
+    });
+    return out;
+  }
+
+  var districtData = csv.scores_by_district_2017;
+  var schoolData = csv.scores_by_school_2017;
+  var districtDataOld = csv.scores_by_district_2016;
+  var schoolDataOld = csv.scores_by_school_2016;
+
+  var createGroups = function(oldData, newData) {
+    var grouped = {};
+
+    newData.forEach(function(row) {
+      if (row.testAdministration !== "SBA") return;
+      if (row.StudentGroup !== "All") return;
+      var key = row.School ? row.School + row.District : row.District;
+      if (!grouped[key]) grouped[key] = {
+        county: row.County,
+        district: row.District,
+        school: row.School
+      };
+      var group = grouped[key];
+      if (!row["countMetStandardIncludingPP"]) return;
+      if (!group.grades) group.grades = {};
+      if (!group.grades[row.GradeLevel]) group.grades[row.GradeLevel] = clean(row);
+      if (row.Subject == "ELA") {
+        group.grades[row.GradeLevel].ela = row.PercentMetStandardIncludingPP;
+      } else if (row.Subject == "MATH") {
+        group.grades[row.GradeLevel].math = row.PercentMetStandardIncludingPP;
+      }
+    });
+
+    oldData.forEach(function(row) {
+      if (row.testAdministration !== "SBA") return;
+      if (row.StudentGroup !== "All") return;
+      var key = row.School ? row.School + row.District : row.District;
+      var group = grouped[key];
+      if (!group) return;
+      if (!group.grades) return;
+      if (!group.grades[row.GradeLevel]) return;
+      var grade = group.grades[row.GradeLevel];
+      switch (row.Subject) {
+        case "ELA":
+          grade.elaDiff = (grade.ela - row.PercentMetStandardIncludingPP);
+          if (grade.elaDiff > 0) {
+            grade.elaDirection = "+";
+          } else if (grade.elaDiff < 0) {
+            grade.elaDirection = "-";
+            grade.elaDiff *= -1;
+          } else {
+            grade.elaDirection = "";
+          }
+          break;
+
+        case "MATH":
+          grade.mathDiff = (grade.math - row.PercentMetStandardIncludingPP);
+          if (grade.mathDiff > 0) {
+            grade.mathDirection = "+";
+          } else if (grade.mathDiff < 0) {
+            grade.mathDirection = "-";
+            grade.mathDiff *= -1;
+          } else {
+            grade.mathDirection = "";
+          }
+          break;
+      }
+    });
+  
+    return grouped;
+  }
+
+
+  var groupedResults = createGroups(districtDataOld, districtData);
+  var groupedSchoolResults = createGroups(schoolDataOld, schoolData);
+
+  var groupedSchools = Object.keys(groupedSchoolResults).map(function(k) { 
+    return groupedSchoolResults[k]
+  });
+
+  groupedSchools.forEach(function(school) {
+    var district = groupedResults[school.district];
+    if (!district) return;
+    if (!district.schools) district.schools = {};
+    district.schools[school.school] = school;
+  });
+
+  var grouped = Object.keys(groupedResults).map(function(k) { return groupedResults[k] });
+%>
+
+<!doctype html>
+<html>
+  <head>
+    <title><%= json.project.title %></title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script src="https://use.fontawesome.com/bd870dfa49.js"></script>
+    <style>
+[ng-cloak] { opacity: 0; }
+    </style>
+    <%= t.include("partials/_head.html") %>
+  </head>
+  <body ng-app="common-core-search">
+
+    <responsive-child>
+
+      <div ng-controller="commonCoreController" class="outermost" ng-cloak>
+
+        <div class="search-container">
+          <span class="view">View 2017 test results for:</span>
+          <type-select options="districts" model="district"></type-select>
+          <div ng-if="school">
+            <div class="no-results" ng-if="!school.grades">
+              <i class="alarm fa fa-exclamation-triangle"></i> No reported results.
+            </div>
+
+            <div class="showing" ng-class="{ visible: district.grades }">
+              <span class="label">Showing:</span>
+              <select name="select" ng-model="$parent.schoolName">
+                <option value="">District Average</option> 
+                <option value="{{s.school}}" ng-repeat="s in district.schools">{{s.school}}</option> 
+              </select>
+            </div>
+
+            <table ng-if="school.grades">
+
+              <tr ng-if="school.grades" class="table-label"><td colspan="5">Percentage of students proficient:</td></tr>
+
+              <tr class="header">
+                <td class="grade">Grade</td>
+                <td class="math score"><div><i class="fa fa-calculator"></i></div>Math</td>
+                <td class="math average"><div></div>Change from 2016</td>
+                <td class="reading score"><div><i class="fa fa-pencil"></i></div>ELA</td>
+                <td class="reading average"><div></div>Change from 2016</td>
+              </tr>
+
+              <tr ng-repeat="row in school.grades">
+
+                <td class="grade">{{row.GradeLevel}}</td>
+
+                <td class="math">
+                  <span ng-if="row.math">
+                    {{row.math | number : 1}}%
+                  </span>
+                  <span ng-if="!row.math">
+                    -
+                  </span>
+                  
+                </td>
+
+                <td class="math average">
+                  <span ng-if="row.mathDiff">
+                    {{row.mathDirection}}{{row.mathDiff | number : 1}}
+                  </span>
+                  <span ng-if="!row.mathDiff">
+                    -
+                  </span>
+                </td>
+
+                <td class="reading">
+                  <span ng-if="row.ela">
+                    {{row.ela | number : 1}}%
+                  </span>
+                  <span ng-if="!row.ela">
+                    -
+                  </span>
+                  
+                </td>
+
+                <td class="reading average">
+                  <span ng-if="row.elaDiff">
+                    {{row.elaDirection}}{{row.elaDiff | number : 1}}
+                  </span>
+                  <span ng-if="!row.elaDiff">
+                    -
+                  </span>
+                </td>
+
+              </tr>
+
+            </table>
+
+          </div>
+        </div>
+
+        <div class="bottom">
+          <div class="note">
+            Note: Students who opted out of the test were given scores of zero, and are counted in these numbers as not passing. For student privacy reasons, results aren’t available when only a small number of students took the test or when fewer than 10 passed or failed.
+          </div>
+          <div class="source"><em>
+            Source: Office of Superintendent of Public Instruction</em>
+          </div>
+          <div class="credit">THOMAS WILBURN / THE SEATTLE TIMES</div>
+        </div>
+
+      </div>
+
+    </responsive-child>
+
+    <script>
+      var districtData = <%= JSON.stringify(grouped) %>;
+    </script>
+
+    <script src="app.js" async></script>
+    <% if (json.project.production) { %>
+    <%= !json.project.embedded ? t.include("partials/_foot.html") : "" %>
+    <%= t.include("partials/_workHere.html") %>
+    <% } %>
+  </body>
+</html>
