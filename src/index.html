@@ -10,10 +10,10 @@
     return out;
   }
 
-  var districtData = csv.scores_by_district_2017;
-  var schoolData = csv.scores_by_school_2017;
-  var districtDataOld = csv.scores_by_district_2016;
-  var schoolDataOld = csv.scores_by_school_2016;
+  var districtData = csv.scores_by_district_2018;
+  var schoolData = csv.scores_by_school_2018;
+  var districtDataOld = csv.scores_by_district_2017;
+  var schoolDataOld = csv.scores_by_school_2017;
 
   var createGroups = function(oldData, newData) {
     var grouped = {};
@@ -115,7 +115,7 @@
       <div ng-controller="commonCoreController" class="outermost" ng-cloak>
 
         <div class="search-container">
-          <span class="view">View 2017 test results for:</span>
+          <span class="view">View 2018 test results for:</span>
           <type-select options="districts" model="district"></type-select>
           <div ng-if="school">
             <div class="no-results" ng-if="!school.grades">
@@ -137,9 +137,9 @@
               <tr class="header">
                 <td class="grade">Grade</td>
                 <td class="math score"><div><i class="fa fa-calculator"></i></div>Math</td>
-                <td class="math average"><div></div>Change from 2016</td>
+                <td class="math average"><div></div>Change from 2017</td>
                 <td class="reading score"><div><i class="fa fa-pencil"></i></div>ELA</td>
-                <td class="reading average"><div></div>Change from 2016</td>
+                <td class="reading average"><div></div>Change from 2017</td>
               </tr>
 
               <tr ng-repeat="row in school.grades">
@@ -198,7 +198,7 @@
           <div class="source"><em>
             Source: Office of Superintendent of Public Instruction</em>
           </div>
-          <div class="credit">THOMAS WILBURN / THE SEATTLE TIMES</div>
+          <div class="credit">Emily M. Eng / THE SEATTLE TIMES</div>
         </div>
 
       </div>
